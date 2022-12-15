@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<base target="_top">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<title>Accessible markers - Leaflet</title>
+	
+	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+
+	<style>
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		.leaflet-container {
+			height: 100%;
+			width: 100%;
+			max-width: 100%;
+			max-height: 100%;
+		}
+	</style>
+
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@latest/dist/Chart.min.js"></script>
+<div id='map' onchange="graficar()"></div>
+
+<script>
+
+	const map = L.map('map').setView([-38.739596, -72.601606], 12);
+
+	const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		maxZoom: 30,
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+	}).addTo(map);
+
+	const marker1 = L.marker([-38.721183, -72.579891]).addTo(map)
+		.bindPopup("<canvas id='grafica' onclick='getdata(0)'></canvas>", {maxWidth: 500});
+	const marker2 = L.marker([-38.703904, -72.548047]).addTo(map)
+		.bindPopup("<canvas id='grafica' onclick='getdata(1)'></canvas>");
+	const marker3 = L.marker([-38.749035, -72.634651]).addTo(map)
+		.bindPopup("<canvas id='grafica' onclick='getdata(2)'></canvas>");
+	const marker4 = L.marker([-38.737788, -72.609674]).addTo(map)
+		.bindPopup("<canvas id='grafica' onclick='getdata(3)'></canvas>");
+	const marker5 = L.marker([-38.718705, -72.617141]).addTo(map)
+		.bindPopup("<canvas id='grafica' onclick='getdata(4)'></canvas>");
+
+</script>
+
+<script>
+
+    async function getdata(st){
+    console.log(JSON.stringify({"id": st}))
+      fetch('/getdata2',{
+        method : 'POST',
+        body: JSON.stringify({"id": st})
+      }).then(response =>{
+        return response.json();
+      }).then( data =>{
+        console.log(data)
+        graficar(data);
+      }).catch(error =>console.error(error));
+
+    }
+
+    
+// Obtener una referencia al elemento canvas del DOM
+function graficar(data){
+    
+    var backgroundColor = 'white';
+    Chart.plugins.register({
+    beforeDraw: function(c) {
+        var ctx = c.chart.ctx;
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, c.chart.width, c.chart.height);
+    }
+    });
+
+    const $grafica = document.querySelector("#grafica");
+    console.log($grafica);
+    const $temperatura = document.querySelector("#temperatura");
+    let etiquetas = [];
+    let d01 = [];
+    let d25 = [];
+    let d10 = [];
+    let dte = [];
+    for (i in data[0]) {
+        etiquetas.push(data[1][i]["time"].toString());
+        d01.push(parseInt(data[0][i]["01"]));
+        d25.push(parseInt(data[0][i]["25"]));
+        d10.push(parseInt(data[0][i]["10"]));
+        dte.push(parseInt(data[0][i]["te"]));
+    }
+    const P01 = {
+        label: "1.0",
+        data: d01,
+        backgroundColor: 'transparent', // Color de fondo
+        borderColor: 'rgba(255, 0, 0, 1)', // Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        pointBorderWidth: 2,
+        fill: false,
+        
+    };
+    const P25 = {
+        label: "2.5",
+        data: d25, // La data es un arreglo que debe tener la misma cantidad de valores que la cantidad de etiquetas
+        backgroundColor: 'transparent',// Color de fondo
+        borderColor: 'rgba(0, 0, 255, 1)',// Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        fill: false,
+    };
+    const P10 = {
+        label: "10",
+        data: d10, // La data es un arreglo que debe tener la misma cantidad de valores que la cantidad de etiquetas
+        backgroundColor: 'transparent',// Color de fondo
+        borderColor: 'rgba(255, 159, 64, 1)',// Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        fill: false,
+    };
+    const chart = new Chart($grafica, {
+    type: 'line',
+    data: {
+        labels: etiquetas,
+        datasets: [
+            P01,
+            P25,
+            P10,
+
+        ]
+    },
+    options: {
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true,
+                }
+            }],
+        },
+    }
+});
+
+
+}
+
+</script>
+
+
+</body>
+</html>

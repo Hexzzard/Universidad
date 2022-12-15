@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Proyecto 3{% endblock %}
+
+{% block content %}
+
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@latest/dist/Chart.min.js"></script>
+    <br>
+    <h1 class="text-center display-3 font-weight-bold">Proyecto N°3 de interfaces graficas</h1>
+    <br><br>
+
+    <canvas id="grafica"></canvas>
+    <br>
+    <div class="text-center">
+        <input type="button" value="Enviar Grafico de material particulado" onClick="Enviar('grafica')" class="btn btn-primary">
+    </div><br>
+
+
+    <canvas id="temperatura"></canvas>
+    <br>
+    <div class="text-center">
+    <input type="button" value="Enviar Grafico de temperatura" onClick="Enviar('temperatura')" class="btn btn-primary">
+    </div><br>
+<script>
+    var Last;
+    function delay(milliseconds){
+    return new Promise(resolve => {
+      setTimeout(resolve, milliseconds);
+    });
+    }
+    var backgroundColor = 'white';
+    Chart.plugins.register({
+    beforeDraw: function(c) {
+        var ctx = c.chart.ctx;
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, c.chart.width, c.chart.height);
+    }
+    });
+
+    async function init(){
+      while(true){
+
+      fetch('/getdata',{
+        method : 'POST',
+        credentials : "include",
+        headers: new Headers({
+          'Content-Type': 'application/json',
+        })
+      }).then(response =>{
+        return response.json();
+      }).then( data =>{
+        console.log(data)
+        if(data[0][0]){
+        if(Last != data[1][data[1].length-1]["time"]){
+            console.log("true")
+            graficar(data);
+        }
+        Last = data[1][data[1].length-1]["time"];
+        }else{
+            if(Last != 0){
+            graficar(data);
+            Last=0;
+            console.log("true")
+        }}
+        
+      }).catch(error =>console.error(error));
+      await delay(5000);
+    }}
+
+    init();
+// Obtener una referencia al elemento canvas del DOM
+function graficar(data){
+    
+    const $grafica = document.querySelector("#grafica");
+    const $temperatura = document.querySelector("#temperatura");
+    let etiquetas = [];
+    let d01 = [];
+    let d25 = [];
+    let d10 = [];
+    let dte = [];
+    for (i in data[0]) {
+        etiquetas.push(data[1][i]["time"].toString());
+        d01.push(parseInt(data[0][i]["01"]));
+        d25.push(parseInt(data[0][i]["25"]));
+        d10.push(parseInt(data[0][i]["10"]));
+        dte.push(parseInt(data[0][i]["te"]));
+    }
+    const P01 = {
+        label: "Material particulado 1.0",
+        data: d01,
+        backgroundColor: 'transparent', // Color de fondo
+        borderColor: 'rgba(255, 0, 0, 1)', // Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        pointBorderWidth: 2,
+        fill: false,
+        
+    };
+    const P25 = {
+        label: "Material particulado 2.5",
+        data: d25, // La data es un arreglo que debe tener la misma cantidad de valores que la cantidad de etiquetas
+        backgroundColor: 'transparent',// Color de fondo
+        borderColor: 'rgba(0, 0, 255, 1)',// Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        fill: false,
+    };
+    const P10 = {
+        label: "Material particulado 10",
+        data: d10, // La data es un arreglo que debe tener la misma cantidad de valores que la cantidad de etiquetas
+        backgroundColor: 'transparent',// Color de fondo
+        borderColor: 'rgba(255, 159, 64, 1)',// Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        fill: false,
+    };
+    const Te = {
+        label: "Temperatura",
+        data: dte, // La data es un arreglo que debe tener la misma cantidad de valores que la cantidad de etiquetas
+        backgroundColor: 'transparent',// Color de fondo
+        borderColor: 'rgba(23, 129, 40, 1)',// Color del borde
+        borderWidth: 1,// Ancho del borde
+        lineTension: 0,
+        pointRadius: 0,
+        fill: false,
+    };
+
+
+    const chart = new Chart($grafica, {
+    type: 'line',
+    data: {
+        labels: etiquetas,
+        datasets: [
+            P01,
+            P25,
+            P10,
+
+        ]
+    },
+    options: {
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true
+                }
+            }],
+        },
+    }
+});
+
+const Tchart = new Chart($temperatura, {
+    type: 'line',
+    data: {
+        labels: etiquetas,
+        datasets: [
+            Te
+
+        ]
+    },
+    options: {
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true
+                }
+            }],
+        },
+    }
+});
+
+}
+
+</script>
+<script>
+   
+    function Enviar(element){
+        var canvas = document.getElementById(element); 
+        console.log(canvas) 
+
+        canvas.toBlob((blob) => {
+
+            const Fdata = new FormData();
+            Fdata.append("imagen", blob, "imagen.png");
+            console.log(Fdata.get("imagen"))
+            fetch('/Telebot',{
+                method : 'POST',
+                //credentials : "include",
+                body: Fdata,
+                }).then(response =>{
+                    console.log(response);
+                return response.json()
+                })
+        });
+    }
+
+</script>
+</body>
+
+{% endblock %}
+</html>
